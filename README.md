@@ -433,9 +433,17 @@ Apache 2.0
 
 The `livesketch` profile connects this app on Reachy Wireless to LiveSketch on a
 Mac. It adds `livesketch_get_scene`, `livesketch_say` (a drawing's screen bubble),
-and `livesketch_set_night`. The `livesketch_look` tool requests a fresh JPEG of the
-calibrated table from the overhead camera and attaches it to the existing voice
-backend as an image input. Images are sent only on a look call, never in the
+`livesketch_tell_story` and `livesketch_stop_story`. The `livesketch_look` tool requests
+a fresh JPEG of the calibrated table from the overhead camera, with each detected
+drawing marked by its numbered ID, and attaches it to the existing voice backend as
+an image input.
+
+Ask for a story: Reachy looks at the table, writes a short script where every drawing
+is a character, and sends it with `livesketch_tell_story`. The screen fades the drawings
+out, brings each one back when it enters the story and shows its lines in speech
+bubbles, while Reachy narrates the same script aloud. The screen paces the script at an
+estimated speaking rate (`?storyRate=14` characters per second on the LiveSketch URL);
+it does not hear the robot, so tune that value if the bubbles run ahead or behind. Images are sent only on a look call, never in the
 background scene polling. The configured realtime backend handles voice and motion.
 
 On the Mac, run `./run.sh` from the LiveSketch project, open localhost:8765 and

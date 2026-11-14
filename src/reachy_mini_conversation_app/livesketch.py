@@ -29,7 +29,7 @@ class Scene(BaseModel):
     available: bool
     session: str | None
     drawings: list[Drawing]
-    night: bool
+    story: bool = False
 
 
 class TableImage(BaseModel):
@@ -59,11 +59,18 @@ class LiveSketchClient:
         response.raise_for_status()
         return TableImage.model_validate_json(response.content)
 
-    async def command(self, command: dict[str, str | int | bool]) -> dict[str, object]:
+    async def command(self, command: dict[str, object]) -> dict[str, object]:
         """Wait for the browser to acknowledge a command."""
         response = await self.client.post("/api/commands", json=command)
         response.raise_for_status()
-        return {"ok": True}
+        result: dict[str, object] = {"ok": True}
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        if isinstance(body, dict) and isinstance(body.get("duration_s"), (int, float)):
+            result["duration_s"] = body["duration_s"]
+        return result
 
 
 def bridge_client() -> httpx.AsyncClient:
@@ -107,7 +114,8 @@ class AppearanceMonitor:
             for drawing_id, arrived in self.pending.items()
             if drawing_id in visible and now - arrived <= 15
         }
-        if not self.pending or not ready or now - self.last_reaction < 10:
+        # During a story, Reachy is narrating: newcomers wait or expire quietly.
+        if not self.pending or not ready or scene.story or now - self.last_reaction < 10:
             return None
         # Wait one poll to collect drawings placed together.
         if now - min(self.pending.values()) < 1:

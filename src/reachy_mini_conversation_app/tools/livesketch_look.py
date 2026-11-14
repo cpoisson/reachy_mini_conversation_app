@@ -17,7 +17,8 @@ class LiveSketchLook(Tool):
     description = (
         "Capture a fresh image of the LiveSketch drawing table from its overhead camera. "
         "Use to look at the table, describe drawings, colors or visual details, or answer what you see. "
-        "This shows the physical table, not the robot's own camera or the animated screen."
+        "This shows the physical table, not the robot's own camera or the animated screen. "
+        "Orange numbered badges mark each detected drawing with its livesketch_get_scene ID."
     )
     parameters_schema = {"type": "object", "properties": {}, "additionalProperties": False}
 

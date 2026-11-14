@@ -9,17 +9,18 @@ from reachy_mini_conversation_app.tools import (
     livesketch_say,
     livesketch_look,
     livesketch_get_scene,
-    livesketch_set_night,
+    livesketch_stop_story,
+    livesketch_tell_story,
 )
 from reachy_mini_conversation_app.livesketch import Scene, AppearanceMonitor, watch_appearances
 
 
-def snapshot(*ids, available=True, session="table-1", category="boat", recognized=True):
+def snapshot(*ids, available=True, session="table-1", category="boat", recognized=True, story=False):
     """Snapshot."""
     return Scene(
         available=available,
         session=session,
-        night=False,
+        story=story,
         drawings=[{"id": i, "category": category, "recognized": recognized, "x": 0.2, "y": 0.3} for i in ids],
     )
 
@@ -71,12 +72,12 @@ async def test_tools_auth_scene_and_acknowledged_commands(monkeypatch):
             transport=httpx.MockTransport(handle),
         )
 
-    for tool_module in (livesketch_get_scene, livesketch_say, livesketch_set_night):
+    for tool_module in (livesketch_get_scene, livesketch_say, livesketch_stop_story):
         monkeypatch.setattr(tool_module, "bridge_client", client)
     result = await livesketch_get_scene.LiveSketchGetScene()(None)
     assert result["drawings"][0]["category"] == "boat"
     assert await livesketch_say.LiveSketchSay()(None, drawing_id=1, text="Ohé !") == {"ok": True}
-    assert await livesketch_set_night.LiveSketchSetNight()(None, enabled=True) == {"ok": True}
+    assert await livesketch_stop_story.LiveSketchStopStory()(None) == {"ok": True}
     assert len(received) == 3
     assert '"drawing_id":1' in received[1].content.decode()
 
@@ -155,3 +156,39 @@ async def test_look_returns_fresh_table_image(monkeypatch):
     )
     assert await livesketch_look.LiveSketchLook()(None) == image
     assert requests == ["/api/table-image"]
+
+
+def test_no_spontaneous_reaction_while_a_story_plays():
+    """Drawings placed during a story are not announced over the narration."""
+    monitor = AppearanceMonitor()
+    monitor.update(snapshot(1), 0, True)
+    monitor.update(snapshot(1, 2, story=True), 1, True)
+    assert monitor.update(snapshot(1, 2, story=True), 3, True) is None
+    assert monitor.update(snapshot(1, 2), 4, True) is not None
+
+
+@pytest.mark.asyncio
+async def test_tell_story_sends_script_and_asks_to_narrate(monkeypatch):
+    """The whole script reaches the bridge; success tells Reachy to narrate it."""
+    import json
+
+    bodies = []
+    status = 200
+
+    def respond(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(status, json={"ok": True, "id": "x", "duration_s": 12.5})
+
+    monkeypatch.setattr(
+        livesketch_tell_story,
+        "bridge_client",
+        lambda: httpx.AsyncClient(base_url="http://table:8765", transport=httpx.MockTransport(respond)),
+    )
+    tool = livesketch_tell_story.LiveSketchTellStory()
+    scenes = [{"narration": "Il était une fois un bateau.", "lines": [{"drawing_id": 1, "text": "Ohé !"}]}]
+    result = await tool(None, title="Le bateau", scenes=scenes)
+    assert result["ok"] is True and result["duration_s"] == 12.5 and "aloud" in result["next"]
+    assert bodies[-1] == {"action": "story", "story": {"title": "Le bateau", "scenes": scenes}}
+    status = 404
+    assert "left the table" in (await tool(None, scenes=scenes))["error"]
+    assert "error" in await tool(None, scenes=[])
