@@ -12,6 +12,7 @@ from reachy_mini_conversation_app.tools import (
     livesketch_get_scene,
     livesketch_stop_story,
     livesketch_tell_story,
+    livesketch_set_background,
 )
 from reachy_mini_conversation_app.livesketch import Scene, AppearanceMonitor, watch_appearances
 
@@ -219,3 +220,25 @@ async def test_act_sends_motion_and_reports_refusals(monkeypatch):
     assert "fusée" in (await tool(None, drawing_id=1, motion="launch"))["error"]
     assert "error" in await tool(None, drawing_id=1, motion="explode")
     assert len(bodies) == 2
+
+
+@pytest.mark.asyncio
+async def test_set_background_sends_known_scenery_only(monkeypatch):
+    """Only listed backgrounds reach the screen."""
+    import json
+
+    bodies = []
+
+    def respond(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={"ok": True, "id": "x"})
+
+    monkeypatch.setattr(
+        livesketch_set_background,
+        "bridge_client",
+        lambda: httpx.AsyncClient(base_url="http://table:8765", transport=httpx.MockTransport(respond)),
+    )
+    tool = livesketch_set_background.LiveSketchSetBackground()
+    assert await tool(None, background="moon") == {"ok": True}
+    assert "error" in await tool(None, background="jungle")
+    assert bodies == [{"action": "set_background", "background": "moon"}]

@@ -31,6 +31,7 @@ class Scene(BaseModel):
     session: str | None
     drawings: list[Drawing]
     story: bool = False
+    background: str | None = None
 
 
 class TableImage(BaseModel):

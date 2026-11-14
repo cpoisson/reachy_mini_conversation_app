@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from reachy_mini_conversation_app.livesketch import LiveSketchClient, bridge_client
 from reachy_mini_conversation_app.tools.core_tools import Tool, ToolDependencies
 from reachy_mini_conversation_app.tools.livesketch_act import MOTIONS
+from reachy_mini_conversation_app.tools.livesketch_set_background import BACKGROUNDS
 
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,11 @@ class LiveSketchTellStory(Tool):
                             "type": "string",
                             "maxLength": 400,
                             "description": "What the narrator says in this scene, one or two short sentences.",
+                        },
+                        "background": {
+                            "type": "string",
+                            "enum": BACKGROUNDS,
+                            "description": "Optional scenery that fades in when this scene starts.",
                         },
                         "characters": {
                             "type": "array",
