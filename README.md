@@ -467,3 +467,8 @@ is intended for a trusted LAN, without exposing the Mac to the Internet.
 Configure `LIVESKETCH_URL` and `LIVESKETCH_TOKEN` to enable the integration. No new
 Python dependencies are required in this fork. The architecture diagram does not
 yet show this optional LAN connection to the Mac's LiveSketch bridge.
+
+The LiveSketch startup profile uses calm motion: 1 mm breathing, 2° antenna sway
+over a 16-second cycle, no speech wobble and no face tracking. Its default tools
+exclude recorded emotions and head gestures, leaving the subtle breathing
+animation as its idle behavior. Other startup profiles keep their usual motion.

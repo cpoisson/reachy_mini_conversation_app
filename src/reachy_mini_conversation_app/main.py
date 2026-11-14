@@ -195,7 +195,8 @@ def run(
 
     app_lifecycle.wake_up_if_sleeping(robot, logger)
 
-    movement_manager = MovementManager(current_robot=robot)
+    calm_motion = config.REACHY_MINI_CUSTOM_PROFILE == "livesketch"
+    movement_manager = MovementManager(current_robot=robot, calm=calm_motion)
 
     deps = ToolDependencies(
         reachy_mini=robot,
@@ -333,7 +334,11 @@ def run(
     # Audio-reactive head motion is driven by the daemon's wobbler, which
     # taps the media pipeline at push_audio_sample. The console stream pushes
     # assistant audio through that pipeline directly.
-    robot.enable_wobbling()
+    if calm_motion:
+        robot.stop_head_tracking()
+        robot.disable_wobbling()
+    else:
+        robot.enable_wobbling()
 
     timeout_minutes = resolve_app_timeout_minutes()
     if timeout_minutes is not None:

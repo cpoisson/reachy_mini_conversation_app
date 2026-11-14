@@ -59,6 +59,7 @@ class BreathingMove(Move):  # type: ignore
         interpolation_start_pose: NDArray[np.float32],
         interpolation_start_antennas: Tuple[float, float],
         interpolation_duration: float = 1.0,
+        calm: bool = False,
     ):
         """Initialize breathing move.
 
@@ -66,6 +67,7 @@ class BreathingMove(Move):  # type: ignore
             interpolation_start_pose: 4x4 matrix of current head pose to interpolate from
             interpolation_start_antennas: Current antenna positions to interpolate from
             interpolation_duration: Duration of interpolation to neutral (seconds)
+            calm: Use slow, small movements around the neutral antenna position
 
         """
         self.interpolation_start_pose = interpolation_start_pose
@@ -81,6 +83,12 @@ class BreathingMove(Move):  # type: ignore
         self.breathing_frequency = 0.1  # Hz (6 breaths per minute)
         self.antenna_sway_amplitude = np.deg2rad(15)  # 15 degrees
         self.antenna_frequency = 0.5  # Hz (faster antenna sway)
+        self.calm = calm
+        if calm:
+            self.breathing_z_amplitude = 0.001
+            self.breathing_frequency = 0.08
+            self.antenna_sway_amplitude = np.deg2rad(2)
+            self.antenna_frequency = 1 / 16
 
     @property
     def duration(self) -> float:
@@ -117,6 +125,8 @@ class BreathingMove(Move):  # type: ignore
             # Antenna sway (opposite directions)
             antenna_sway = self.antenna_sway_amplitude * np.sin(2 * np.pi * self.antenna_frequency * breathing_time)
             antennas = np.array([antenna_sway, -antenna_sway], dtype=np.float64)
+            if self.calm:
+                antennas += self.neutral_antennas
 
         # Return in official Move interface format: (head_pose, antennas_array, body_yaw)
         return (head_pose, antennas, 0.0)
@@ -187,9 +197,11 @@ class MovementManager:
     def __init__(
         self,
         current_robot: ReachyMini,
+        calm: bool = False,
     ):
         """Initialize movement manager."""
         self.current_robot = current_robot
+        self.calm = calm
         self._head_tracking = False
 
         # Single timing source for durations
@@ -359,7 +371,7 @@ class MovementManager:
                 self._antenna_unfreeze_blend = 0.0
             self.state.update_activity()
         elif command == "set_head_tracking":
-            enabled = bool(payload)
+            enabled = bool(payload) and not self.calm
             if self._head_tracking == enabled:
                 return
             self._head_tracking = enabled
@@ -437,7 +449,8 @@ class MovementManager:
                     breathing_move = BreathingMove(
                         interpolation_start_pose=current_head_pose,
                         interpolation_start_antennas=current_antennas,
-                        interpolation_duration=1.0,
+                        interpolation_duration=2.0 if self.calm else 1.0,
+                        calm=self.calm,
                     )
                     self.move_queue.append(breathing_move)
                     logger.debug("Started breathing after %.1fs of inactivity", idle_for)

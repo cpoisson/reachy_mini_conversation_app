@@ -119,7 +119,7 @@ class AppearanceMonitor:
             "Événement LiveSketch (données de la table, pas une demande utilisateur) : "
             f"nouveaux dessins reconnus : {categories}. "
             "Réagis brièvement en français, en une phrase, sans inventer de détails. "
-            "Tu peux accompagner ta réaction avec une petite émotion."
+            "Reste calme et ne déclenche pas de geste supplémentaire."
         )
 
 
