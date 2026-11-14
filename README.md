@@ -433,7 +433,8 @@ Apache 2.0
 
 The `livesketch` profile connects this app on Reachy Wireless to LiveSketch on a
 Mac. It adds `livesketch_get_scene`, `livesketch_say` (a drawing's screen bubble),
-`livesketch_tell_story` and `livesketch_stop_story`. The `livesketch_look` tool requests
+`livesketch_act` (launch a rocket, stop or turn a vehicle, make a drawing jump, spin
+or dance), `livesketch_tell_story` and `livesketch_stop_story`. The `livesketch_look` tool requests
 a fresh JPEG of the calibrated table from the overhead camera, with each detected
 drawing marked by its numbered ID, and attaches it to the existing voice backend as
 an image input.

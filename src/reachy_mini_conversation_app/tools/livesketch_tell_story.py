@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from reachy_mini_conversation_app.livesketch import LiveSketchClient, bridge_client
 from reachy_mini_conversation_app.tools.core_tools import Tool, ToolDependencies
+from reachy_mini_conversation_app.tools.livesketch_act import MOTIONS
 
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class LiveSketchTellStory(Tool):
     description = (
         "Play a short story on the LiveSketch screen. The drawings fade out, then each one appears when it "
         "first takes part and its lines show in a speech bubble; narration and title show as captions. "
+        "A line may carry a motion (a rocket launch, a jump…), with or without text. "
         "Use drawing IDs from livesketch_get_scene. After success, narrate the same script aloud."
     )
     parameters_schema = {
@@ -55,8 +57,13 @@ class LiveSketchTellStory(Tool):
                                 "properties": {
                                     "drawing_id": {"type": "integer", "minimum": 1},
                                     "text": {"type": "string", "minLength": 1, "maxLength": 160},
+                                    "motion": {
+                                        "type": "string",
+                                        "enum": MOTIONS,
+                                        "description": "Optional action played when this line starts.",
+                                    },
                                 },
-                                "required": ["drawing_id", "text"],
+                                "required": ["drawing_id"],
                                 "additionalProperties": False,
                             },
                         },

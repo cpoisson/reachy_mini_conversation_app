@@ -6,6 +6,7 @@ import pytest
 
 import reachy_mini_conversation_app.livesketch as module
 from reachy_mini_conversation_app.tools import (
+    livesketch_act,
     livesketch_say,
     livesketch_look,
     livesketch_get_scene,
@@ -192,3 +193,29 @@ async def test_tell_story_sends_script_and_asks_to_narrate(monkeypatch):
     status = 404
     assert "left the table" in (await tool(None, scenes=scenes))["error"]
     assert "error" in await tool(None, scenes=[])
+
+
+@pytest.mark.asyncio
+async def test_act_sends_motion_and_reports_refusals(monkeypatch):
+    """A valid action reaches the screen; a refused one is never claimed."""
+    import json
+
+    bodies = []
+    reply = httpx.Response(200, json={"ok": True, "id": "x"})
+
+    def respond(request):
+        bodies.append(json.loads(request.content))
+        return reply
+
+    monkeypatch.setattr(
+        livesketch_act,
+        "bridge_client",
+        lambda: httpx.AsyncClient(base_url="http://table:8765", transport=httpx.MockTransport(respond)),
+    )
+    tool = livesketch_act.LiveSketchAct()
+    assert await tool(None, drawing_id=3, motion="launch") == {"ok": True}
+    assert bodies == [{"action": "act", "drawing_id": 3, "motion": "launch"}]
+    reply = httpx.Response(409, json={"detail": "Seule une fusée peut décoller"})
+    assert "fusée" in (await tool(None, drawing_id=1, motion="launch"))["error"]
+    assert "error" in await tool(None, drawing_id=1, motion="explode")
+    assert len(bodies) == 2

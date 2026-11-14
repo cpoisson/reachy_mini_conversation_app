@@ -21,6 +21,7 @@ class Drawing(BaseModel):
     recognized: bool
     x: float
     y: float
+    state: str = "still"
 
 
 class Scene(BaseModel):
