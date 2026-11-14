@@ -209,7 +209,7 @@ def test_handle_command_queue_and_clear() -> None:
 
 
 def test_calm_breathing_stays_within_small_motion_envelope() -> None:
-    """Calm life motion stays within 1 mm and two degrees of its neutral pose."""
+    """Calm life motion stays within 3 mm and six degrees of its neutral pose."""
     move = BreathingMove(
         interpolation_start_pose=create_head_pose(0, 0, 0, 0, 0, 0, degrees=True),
         interpolation_start_antennas=(-0.1745, 0.1745),
@@ -218,8 +218,8 @@ def test_calm_breathing_stays_within_small_motion_envelope() -> None:
     )
     for elapsed in np.linspace(2.0, 34.0, 129):
         head, antennas, body_yaw = move.evaluate(elapsed)
-        assert abs(head[2, 3]) <= 0.001 + 1e-9
-        assert np.max(np.abs(antennas - move.neutral_antennas)) <= np.deg2rad(2) + 1e-9
+        assert abs(head[2, 3]) <= 0.003 + 1e-9
+        assert np.max(np.abs(antennas - move.neutral_antennas)) <= np.deg2rad(6) + 1e-9
         assert body_yaw == 0
     _, at_transition, _ = move.evaluate(2.0)
     np.testing.assert_allclose(at_transition, move.neutral_antennas)

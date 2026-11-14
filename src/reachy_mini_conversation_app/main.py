@@ -334,11 +334,10 @@ def run(
     # Audio-reactive head motion is driven by the daemon's wobbler, which
     # taps the media pipeline at push_audio_sample. The console stream pushes
     # assistant audio through that pipeline directly.
+    # Calm mode keeps the speech wobble but never tracks faces.
     if calm_motion:
         robot.stop_head_tracking()
-        robot.disable_wobbling()
-    else:
-        robot.enable_wobbling()
+    robot.enable_wobbling()
 
     timeout_minutes = resolve_app_timeout_minutes()
     if timeout_minutes is not None:
