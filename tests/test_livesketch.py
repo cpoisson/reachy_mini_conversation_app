@@ -5,7 +5,12 @@ import httpx
 import pytest
 
 import reachy_mini_conversation_app.livesketch as module
-from reachy_mini_conversation_app.tools import livesketch_say, livesketch_get_scene, livesketch_set_night
+from reachy_mini_conversation_app.tools import (
+    livesketch_say,
+    livesketch_look,
+    livesketch_get_scene,
+    livesketch_set_night,
+)
 from reachy_mini_conversation_app.livesketch import Scene, AppearanceMonitor, watch_appearances
 
 
@@ -128,3 +133,25 @@ async def test_watcher_recovers_without_replaying_and_cancels(monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         await task
     say.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_look_returns_fresh_table_image(monkeypatch):
+    """The look tool fetches an image only when explicitly called."""
+    image = {"b64_im": "/9j/2Q==", "image_width": 480, "image_height": 225}
+    requests = []
+
+    def respond(request):
+        requests.append(request.url.path)
+        return httpx.Response(200, json=image)
+
+    monkeypatch.setattr(
+        livesketch_look,
+        "bridge_client",
+        lambda: httpx.AsyncClient(
+            base_url="http://table:8765",
+            transport=httpx.MockTransport(respond),
+        ),
+    )
+    assert await livesketch_look.LiveSketchLook()(None) == image
+    assert requests == ["/api/table-image"]

@@ -1365,3 +1365,24 @@ async def test_debug_vad_reports_probability_and_barge_in_without_extra_inferenc
     handler._set_listening(server=False)
     assert len(statuses) == previous_reports
     handler._reset_listening()
+
+
+@pytest.mark.asyncio
+async def test_livesketch_image_is_attached_without_echoing_base64() -> None:
+    """A table capture uses the same image input path as the robot camera."""
+    handler = _plain_handler()
+    handler.connection = _FakeConnection()
+    note = ToolNotification(
+        id="table1",
+        tool_name="livesketch_look",
+        is_idle_tool_call=False,
+        status=ToolState.COMPLETED,
+        result={"b64_im": "/9j/2Q==", "image_width": 480, "image_height": 225},
+    )
+    await handler._handle_tool_result(note)
+    items = [invocation.kwargs["item"] for invocation in handler.connection.conversation.item.create.await_args_list]
+    result = json.loads(items[0]["output"])
+    assert result["image_attached"] is True
+    assert "b64_im" not in result
+    assert items[1]["content"] == [{"type": "input_image", "image_url": "data:image/jpeg;base64,/9j/2Q=="}]
+    assert all("/9j/2Q==" not in message["content"] for message in _messages(_drain(handler)))

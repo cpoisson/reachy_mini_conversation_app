@@ -433,8 +433,10 @@ Apache 2.0
 
 The `livesketch` profile connects this app on Reachy Wireless to LiveSketch on a
 Mac. It adds `livesketch_get_scene`, `livesketch_say` (a drawing's screen bubble),
-and `livesketch_set_night`. The existing realtime backend still handles voice and
-motion. Camera images are not sent by the bridge.
+and `livesketch_set_night`. The `livesketch_look` tool requests a fresh JPEG of the
+calibrated table from the overhead camera and attaches it to the existing voice
+backend as an image input. Images are sent only on a look call, never in the
+background scene polling. The configured realtime backend handles voice and motion.
 
 On the Mac, run `./run.sh` from the LiveSketch project, open localhost:8765 and
 start playing. The bridge indicator's tooltip shows the Mac's LAN address.

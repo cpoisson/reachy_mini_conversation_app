@@ -32,6 +32,14 @@ class Scene(BaseModel):
     night: bool
 
 
+class TableImage(BaseModel):
+    """JPEG captured from the calibrated table on demand."""
+
+    b64_im: str
+    image_width: int
+    image_height: int
+
+
 class LiveSketchClient:
     """Call the authenticated bridge without accessing the camera."""
 
@@ -44,6 +52,12 @@ class LiveSketchClient:
         response = await self.client.get("/api/scene")
         response.raise_for_status()
         return Scene.model_validate_json(response.content)
+
+    async def image(self) -> TableImage:
+        """Ask the browser for one fresh table image."""
+        response = await self.client.get("/api/table-image")
+        response.raise_for_status()
+        return TableImage.model_validate_json(response.content)
 
     async def command(self, command: dict[str, str | int | bool]) -> dict[str, object]:
         """Wait for the browser to acknowledge a command."""

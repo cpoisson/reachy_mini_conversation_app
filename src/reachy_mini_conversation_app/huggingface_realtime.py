@@ -318,7 +318,7 @@ class HuggingFaceRealtimeHandler(ConversationHandler):
     @staticmethod
     def _sanitize_tool_result_for_model(tool_name: str, tool_result: dict[str, Any]) -> dict[str, Any]:
         """Remove bulky transport-only fields before echoing tool output back to the model."""
-        if tool_name == "camera" and "b64_im" in tool_result:
+        if tool_name in {"camera", "livesketch_look"} and "b64_im" in tool_result:
             sanitized = dict(tool_result)
             sanitized.pop("b64_im", None)
             sanitized["image_attached"] = True
@@ -820,7 +820,11 @@ class HuggingFaceRealtimeHandler(ConversationHandler):
                 ),
             )
 
-            if model_result_submitted and completed_tool.tool_name == "camera" and "b64_im" in tool_result:
+            if (
+                model_result_submitted
+                and completed_tool.tool_name in {"camera", "livesketch_look"}
+                and "b64_im" in tool_result
+            ):
                 # use raw base64, don't json.dumps (which adds quotes)
                 b64_im = tool_result["b64_im"]
                 if not isinstance(b64_im, str):
