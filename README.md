@@ -428,3 +428,40 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [`AGENTS
 ## License
 
 Apache 2.0
+
+### LiveSketch companion (direct LAN prototype)
+
+The `livesketch` profile connects this app on Reachy Wireless to LiveSketch on a
+Mac. It adds `livesketch_get_scene`, `livesketch_say` (a drawing's screen bubble),
+and `livesketch_set_night`. The existing realtime backend still handles voice and
+motion. Camera images are not sent by the bridge.
+
+On the Mac, run `./run.sh` from the LiveSketch project, open localhost:8765 and
+start playing. The bridge indicator's tooltip shows the Mac's LAN address.
+Copy the private `.livesketch-token` file's contents into the robot's environment:
+
+```sh
+export LIVESKETCH_URL=http://MAC_LAN_IP:8765
+read -rs -p 'LiveSketch token: ' LIVESKETCH_TOKEN; echo
+export LIVESKETCH_TOKEN
+export REACHY_MINI_CUSTOM_PROFILE=livesketch
+reachy-mini-conversation-app --ui
+```
+
+These variables can also live in the instance `.env`; do not commit the token.
+Stop the stock conversation app before running this fork. If a saved startup
+personality overrides the environment, select `livesketch` in the UI. To roll back,
+stop this fork and start the stock installation from the dashboard. Install this
+fork into a separate venv to preserve the dashboard's original installation.
+
+New recognized drawings trigger short reactions when the child and robot are
+silent. Notifications are coalesced, at least ten seconds apart, and expire after
+fifteen seconds. Existing drawings at connection/reconnection are not announced.
+The app polls once per second; a stale or disconnected scene becomes unavailable,
+while ordinary conversation continues. Tool actions succeed only after the
+LiveSketch browser acknowledges them. The bridge requires the shared token and
+is intended for a trusted LAN, without exposing the Mac to the Internet.
+
+Configure `LIVESKETCH_URL` and `LIVESKETCH_TOKEN` to enable the integration. No new
+Python dependencies are required in this fork. The architecture diagram does not
+yet show this optional LAN connection to the Mac's LiveSketch bridge.

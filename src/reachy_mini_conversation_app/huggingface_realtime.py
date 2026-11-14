@@ -1,3 +1,4 @@
+import os
 import json
 import math
 import time
@@ -46,6 +47,7 @@ from reachy_mini_conversation_app.prompts import (
     get_session_greeting_prompt,
 )
 from reachy_mini_conversation_app.streaming import AdditionalOutputs, audio_to_int16
+from reachy_mini_conversation_app.livesketch import watch_appearances
 from reachy_mini_conversation_app.audio.local_vad import SileroVAD
 from reachy_mini_conversation_app.tools.core_tools import (
     ToolSpec,
@@ -911,6 +913,7 @@ class HuggingFaceRealtimeHandler(ConversationHandler):
                 pass
 
             response_sender_task: asyncio.Task[None] | None = None
+            livesketch_task: asyncio.Task[None] | None = None
             try:
                 # Start the background tool manager
                 self.tool_manager.start_up(tool_callbacks=[self._handle_tool_result])
@@ -918,6 +921,26 @@ class HuggingFaceRealtimeHandler(ConversationHandler):
                 # Start the response sender worker
                 response_sender_task = asyncio.create_task(self._response_sender_loop(), name="response-sender")
                 await self._send_startup_greeting_prompt()
+                if os.environ.get("LIVESKETCH_URL") and any(
+                    spec["name"] == "livesketch_get_scene" for spec in tool_specs
+                ):
+                    livesketch_task = asyncio.create_task(
+                        watch_appearances(
+                            self.say,
+                            lambda: (
+                                self.connection is not None
+                                and not self._local_speech
+                                and not self._server_speech
+                                and self._response_done_event.is_set()
+                                and self._pending_responses.empty()
+                                and self.output_queue.empty()
+                                and self.playback_pending_frames == 0
+                                and time.monotonic() > self.playback_until
+                                and time.monotonic() - self.last_activity_time > 2
+                            ),
+                        ),
+                        name="livesketch-appearances",
+                    )
 
                 async for event in self.connection:
                     logger.debug("Realtime event: %s", event.type)
@@ -1130,6 +1153,12 @@ class HuggingFaceRealtimeHandler(ConversationHandler):
                                 AdditionalOutputs({"role": "assistant", "content": f"[error] {msg}"})
                             )
             finally:
+                if livesketch_task is not None:
+                    livesketch_task.cancel()
+                    try:
+                        await livesketch_task
+                    except asyncio.CancelledError:
+                        logger.debug("LiveSketch watcher stopped")
                 self.connection = None
                 self._reset_listening()
                 self._active_response_id = None
